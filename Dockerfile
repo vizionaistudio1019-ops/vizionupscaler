@@ -1,13 +1,12 @@
 FROM runpod/worker-comfyui:5.8.6-base
 
-# UV_LINK_MODE=copy evita el bug de hardlinks de uv que rompe paquetes entre capas de Docker
-# (causaba "ModuleNotFoundError: No module named 'diffusers'" en runtime, aunque el install
-# se veía exitoso en el build).
+# UV_LINK_MODE=copy evita el bug de hardlinks de uv que rompe paquetes entre capas de Docker.
 ENV UV_LINK_MODE=copy
 
-RUN comfy-node-install seedvr2_videoupscaler
-
-# Reinstalo las deps del nodo con pip normal (no uv) directo en el venv de ComfyUI, para
-# garantizar que persistan de verdad en la capa final.
-RUN /comfyui/.venv/bin/python -m pip install --no-cache-dir \
-    diffusers transformers accelerate peft rotary_embedding_torch omegaconf opencv-python gguf
+# Instalo el nodo clonando directo de GitHub — comfy-node-install depende del catálogo online
+# (registry.comfy.org), que estuvo fallando de forma intermitente.
+RUN (command -v git || (apt-get update && apt-get install -y --no-install-recommends git)) \
+    && git clone --depth 1 https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler.git \
+    /comfyui/custom_nodes/seedvr2_videoupscaler \
+    && /comfyui/.venv/bin/python -m pip install --no-cache-dir \
+       -r /comfyui/custom_nodes/seedvr2_videoupscaler/requirements.txt
