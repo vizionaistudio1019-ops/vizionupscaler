@@ -12,6 +12,11 @@ RUN git clone --depth 1 https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler.gi
     && uv pip install --python /opt/venv/bin/python \
        -r /comfyui/custom_nodes/seedvr2_videoupscaler/requirements.txt
 
+# Sube el resultado directo a Supabase en vez de devolverlo en base64 (RunPod corta la salida
+# de un job async en 10MB, y un 4K/8K la supera). Ver el docstring del archivo.
+COPY vizion_sitecustomize.py /opt/venv/lib/python3.12/site-packages/sitecustomize.py
+
 # Assertion de build: si las deps no importan desde el venv real, el build falla acá y no
 # descubrimos el problema recién al correr un job.
-RUN /opt/venv/bin/python -c "import diffusers, omegaconf, rotary_embedding_torch; print('deps OK')"
+RUN /opt/venv/bin/python -c "import diffusers, omegaconf, rotary_embedding_torch; print('deps OK')" \
+    && /opt/venv/bin/python -c "import boto3; print('boto3 OK')"
