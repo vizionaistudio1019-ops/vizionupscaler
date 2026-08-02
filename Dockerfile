@@ -12,14 +12,18 @@ RUN git clone --depth 1 https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler.gi
     && uv pip install --python /opt/venv/bin/python \
        -r /comfyui/custom_nodes/seedvr2_videoupscaler/requirements.txt
 
-# Sube el resultado directo a Supabase en vez de devolverlo en base64 (RunPod corta la salida
-# de un job async en 10MB, y un 4K/8K la supera). Ver el docstring del archivo.
-# ⚠️ Va en /usr/lib/python3.12 (Python del sistema), NO en site-packages del venv: ese
-# sitecustomize.py ya existe (Ubuntu, hook de apport) y gana en sys.path por orden de
-# búsqueda — poner el nuestro en el venv nunca se llegaba a importar.
-COPY vizion_sitecustomize.py /usr/lib/python3.12/sitecustomize.py
+# Override de upload_image: appendeado al final del módulo rp_upload, así corre solo cuando
+# el handler lo importa. (En sitecustomize.py rompía torch y tiraba los workers por OOM.)
+COPY vizion_upload_patch.py /tmp/vizion_upload_patch.py
+RUN cat /tmp/vizion_upload_patch.py >> /opt/venv/lib/python3.12/site-packages/runpod/serverless/utils/rp_upload.py \
+    && rm /tmp/vizion_upload_patch.py
 
-# Assertion de build: si las deps no importan desde el venv real, el build falla acá y no
-# descubrimos el problema recién al correr un job.
+# Assertions de build: si algo de esto no se cumple, el build falla acá y no lo descubrimos
+# recién con un worker crasheando en producción.
 RUN /opt/venv/bin/python -c "import diffusers, omegaconf, rotary_embedding_torch; print('deps OK')" \
-    && /opt/venv/bin/python -c "import boto3; print('boto3 OK')"
+ && /opt/venv/bin/python -c "\
+from runpod.serverless.utils import rp_upload; \
+assert rp_upload.upload_image.__name__ == '_vizion_upload_image', rp_upload.upload_image; \
+print('patch de upload OK')" \
+ && /opt/venv/bin/python -c "\
+import sys; assert 'torch' not in sys.modules; print('arranque limpio: torch no se importa antes de tiempo')"
