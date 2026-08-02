@@ -14,7 +14,10 @@ RUN git clone --depth 1 https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler.gi
 
 # Sube el resultado directo a Supabase en vez de devolverlo en base64 (RunPod corta la salida
 # de un job async en 10MB, y un 4K/8K la supera). Ver el docstring del archivo.
-COPY vizion_sitecustomize.py /opt/venv/lib/python3.12/site-packages/sitecustomize.py
+# ⚠️ Va en /usr/lib/python3.12 (Python del sistema), NO en site-packages del venv: ese
+# sitecustomize.py ya existe (Ubuntu, hook de apport) y gana en sys.path por orden de
+# búsqueda — poner el nuestro en el venv nunca se llegaba a importar.
+COPY vizion_sitecustomize.py /usr/lib/python3.12/sitecustomize.py
 
 # Assertion de build: si las deps no importan desde el venv real, el build falla acá y no
 # descubrimos el problema recién al correr un job.
