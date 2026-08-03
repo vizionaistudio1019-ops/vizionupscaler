@@ -11,3 +11,5 @@ cuando el volumen está attacheado al endpoint.
 
 Conectado a RunPod vía GitHub Integration — cualquier push a `main` reconstruye
 la imagen del endpoint automáticamente.
+
+<!-- retry build 2026-08-03T15:47:22Z -->
