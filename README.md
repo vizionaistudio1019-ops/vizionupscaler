@@ -13,3 +13,4 @@ Conectado a RunPod vía GitHub Integration — cualquier push a `main` reconstru
 la imagen del endpoint automáticamente.
 
 <!-- retry build 2026-08-03T15:47:22Z -->
+<!-- retry RunPod build 2026-08-03T16:01:22Z -->
